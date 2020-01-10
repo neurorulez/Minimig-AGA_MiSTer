@@ -49,6 +49,9 @@ module emu
 	// b[1]: user button
 	// b[0]: osd button
 	output  [1:0] BUTTONS,
+
+	input  [6:0] JOYAV,
+	output		 BUZZER,		  // Salida para Altavoz
 	
 	output [15:0] AUDIO_L,
 	output [15:0] AUDIO_R,
@@ -414,6 +417,10 @@ wire [14:0] rdata;         // right DAC data
 wire        vs;
 wire        hs;
 wire  [1:0] ar;
+wire joyav1_ena = ~JOYAV[6] & ~(&JOYAV[5:0]);
+wire joyav2_ena =  JOYAV[6] & ~(&JOYAV[5:0]);
+wire [5:0] joyav1 = JOYAV[6] ? JOYAV[5:0] : 6'hz;
+wire [5:0] joyav2 = JOYAV[6] ? 6'hz       : JOYAV[5:0] ;
 
 minimig minimig
 (
@@ -462,9 +469,10 @@ minimig minimig
 	.cd           (UART_DSR         ), // RS232 Carrier Detect
 	.ri           (1                ), // RS232 Ring Indicator
 
+	.drv_snd      (BUZZER),            //PIN DEL BUZZER
 	//I/O
-	._joy1        (~JOY0            ), // joystick 1 [fire4,fire3,fire2,fire,up,down,left,right] (default mouse port)
-	._joy2        (~JOY1            ), // joystick 2 [fire4,fire3,fire2,fire,up,down,left,right] (default joystick port)
+	._joy1        (joyav1_ena? {10'b1111111111,joyav1} : ~JOY0 ), // joystick 1 [fire4,fire3,fire2,fire,up,down,left,right] (default mouse port)
+	._joy2        (joyav2_ena? {10'b1111111111,joyav2} : ~JOY1 ), // joystick 2 [fire4,fire3,fire2,fire,up,down,left,right] (default joystick port)
 	._joy3        (~JOY2            ), // joystick 1 [fire4,fire3,fire2,fire,up,down,left,right]
 	._joy4        (~JOY3            ), // joystick 2 [fire4,fire3,fire2,fire,up,down,left,right]
 	.mouse_btn    (MOUSE_BUTTONS    ), // mouse buttons

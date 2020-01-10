@@ -80,7 +80,8 @@ module sys_top
 	output		  AUDIO_L,
 	output		  AUDIO_R,
 	output		  AUDIO_SPDIF,
-
+	output	     BUZZER,
+	
 	//////////// SDIO ///////////
 	inout   [3:0] SDIO_DAT,
 	inout         SDIO_CMD,
@@ -96,12 +97,12 @@ module sys_top
 `endif
 
 	////////// I/O ALT /////////
-	output        SD_SPI_CS,
-	input         SD_SPI_MISO,
-	output        SD_SPI_CLK,
-	output        SD_SPI_MOSI,
+	//output        SD_SPI_CS,
+	//input         SD_SPI_MISO,
+	//output        SD_SPI_CLK,
+	//output        SD_SPI_MOSI,
 
-	inout         SDCD_SPDIF,
+	//inout         SDCD_SPDIF,
 	output        IO_SCL,
 	inout         IO_SDA,
 
@@ -121,29 +122,31 @@ module sys_top
 	output  [7:0] LED,
 
 	///////// USER IO ///////////
-	inout   [6:0] USER_IO
+	inout   [7:0] USER_IO
 );
+
+assign USER_IO[6] = ce_pix;
 
 //////////////////////  Secondary SD  ///////////////////////////////////
 
-wire sd_miso;
-wire SD_CS, SD_CLK, SD_MOSI, SD_MISO;
+//wire sd_miso;
+//wire SD_CS, SD_CLK, SD_MOSI, SD_MISO;
 
-`ifndef DUAL_SDRAM
-	assign SDIO_DAT[2:1]= 2'bZZ;
-	assign SDIO_DAT[3]  = SW[3] ? 1'bZ  : SD_CS;
-	assign SDIO_CLK     = SW[3] ? 1'bZ  : SD_CLK;
-	assign SDIO_CMD     = SW[3] ? 1'bZ  : SD_MOSI;
-	assign sd_miso      = SW[3] ? 1'b1  : SDIO_DAT[0];
-	assign SD_SPI_CS    = mcp_sdcd ? ((~VGA_EN & sog & ~cs1) ? 1'b1 : 1'bZ) : SD_CS;
-`else
-	assign sd_miso      = 1'b1;
-	assign SD_SPI_CS    = mcp_sdcd ? 1'bZ : SD_CS;
-`endif
+//`ifndef DUAL_SDRAM
+//	assign SDIO_DAT[2:1]= 2'bZZ;
+//	assign SDIO_DAT[3]  = SW[3] ? 1'bZ  : SD_CS;
+//	assign SDIO_CLK     = SW[3] ? 1'bZ  : SD_CLK;
+//	assign SDIO_CMD     = SW[3] ? 1'bZ  : SD_MOSI;
+//	assign sd_miso      = SW[3] ? 1'b1  : SDIO_DAT[0];
+//	assign SD_SPI_CS    = mcp_sdcd ? ((~VGA_EN & sog & ~cs1) ? 1'b1 : 1'bZ) : SD_CS;
+//`else
+//	assign sd_miso      = 1'b1;
+//	assign SD_SPI_CS    = mcp_sdcd ? 1'bZ : SD_CS;
+//`endif
 
-assign SD_SPI_CLK  = mcp_sdcd ? 1'bZ    : SD_CLK;
-assign SD_SPI_MOSI = mcp_sdcd ? 1'bZ    : SD_MOSI;
-assign SD_MISO     = mcp_sdcd ? sd_miso : SD_SPI_MISO;
+//assign SD_SPI_CLK  = mcp_sdcd ? 1'bZ    : SD_CLK;
+//assign SD_SPI_MOSI = mcp_sdcd ? 1'bZ    : SD_MOSI;
+//assign SD_MISO     = mcp_sdcd ? sd_miso : SD_SPI_MISO;
 
 //////////////////////  LEDs/Buttons  ///////////////////////////////////
 
@@ -1004,7 +1007,7 @@ csync csync_vga(clk_vid, vga_hs_osd, vga_vs_osd, vga_cs_osd);
 
 /////////////////////////  Audio output  ////////////////////////////////
 
-assign SDCD_SPDIF =(SW[3] & ~spdif) ? 1'b0 : 1'bZ;
+//assign SDCD_SPDIF =(SW[3] & ~spdif) ? 1'b0 : 1'bZ;
 
 `ifndef DUAL_SDRAM
 	wire anl,anr;
@@ -1099,7 +1102,7 @@ alsa alsa
 
 
 ////////////////  User I/O (USB 3.0 connector) /////////////////////////
-
+/*
 assign USER_IO[0] =                       !user_out[0]  ? 1'b0 : 1'bZ;
 assign USER_IO[1] =                       !user_out[1]  ? 1'b0 : 1'bZ;
 assign USER_IO[2] = !(SW[1] ? HDMI_I2S   : user_out[2]) ? 1'b0 : 1'bZ;
@@ -1115,7 +1118,7 @@ assign user_in[3] =         USER_IO[3];
 assign user_in[4] = SW[1] | USER_IO[4];
 assign user_in[5] = SW[1] | USER_IO[5];
 assign user_in[6] =         USER_IO[6];
-
+*/
 
 ///////////////////  User module connection ////////////////////////////
 
@@ -1179,6 +1182,9 @@ emu emu
 	.LED_POWER(led_power),
 	.LED_DISK(led_disk),
 	.BUTTONS(btn),
+
+	.JOYAV({USER_IO[6],USER_IO[5:0]}),
+	.BUZZER(BUZZER),
 
 	.VIDEO_ARX(ARX),
 	.VIDEO_ARY(ARY),

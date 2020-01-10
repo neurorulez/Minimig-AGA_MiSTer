@@ -194,6 +194,9 @@ module minimig
 	input 	     cd,          // rs232 Carrier Detect
 	input 	     ri,          // rs232 Ring Indicator
 
+	//BUZZER
+	output drv_snd,            //Salida del la emulacion de sonido FD al Buzzer
+	
 	//I/O
 	input  [15:0] _joy1,       // joystick 1 [fire2,fire,up,down,left,right] (default mouse port)
 	input  [15:0] _joy2,       // joystick 2 [fire2,fire,up,down,left,right] (default joystick port)
@@ -410,6 +413,31 @@ wire        reset = sys_reset | ~_cpu_reset_in; // both tg68k and minimig_syscon
 
 //--------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------
+// drive step sound emulation
+reg	_step_del;
+always @(posedge clk)
+	_step_del <= _step; // delayed version of _step for edge detection
+
+wire	step_pulse;
+assign	step_pulse = _step & ~_step_del; // rising edge detection
+
+reg	sol_del;
+always @(posedge clk)
+	sol_del <= sol; // delayed version of sol (Amiga display line) for edge detection
+
+wire	sol_pulse;
+assign sol_pulse = sol & ~sol_del; // rising edge detection
+
+reg	[3:0] drv_cnt;
+always @(posedge clk)
+	if (drv_cnt != 0 && sol_pulse || drv_cnt == 0 && step_pulse && _change && !reset) // count only sol pulses when counter is not zero or step pulses and bootloader is not active
+		drv_cnt <= drv_cnt + 1;
+
+reg	drvsnd;
+always @(posedge clk)
+	drvsnd <= |drv_cnt; // high when at least one bit of drv_cnt vector is not zero (| is the reduction operator) and any drive has an inserted disk
+
+assign drv_snd = drvsnd ? 1'b1 : 1'b0;
 
 // power led control
 reg [5:0] led_cnt;
