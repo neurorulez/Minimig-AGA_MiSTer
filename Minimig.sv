@@ -425,12 +425,12 @@ wire  [1:0] ar;
    wire [11:0] joyav1,joyav2;
    reg   [5:0] joy1r, joy2r;
 	reg clk_joy, joy_split;
-
+	reg [7:0]clk_dly;
 	
    always @ (posedge clk_sys) begin
-    clk_joy <= ~clk_joy;
+    clk_dly <= clk_dly + 1;
    end
-
+	assign clk_joy = clk_dly[3];	
    assign JOYAV[6] = joy_split;
    always @(posedge clk_joy) begin  
       if(joy_split == 1) begin 
