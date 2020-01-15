@@ -50,7 +50,7 @@ module emu
 	// b[0]: osd button
 	output  [1:0] BUTTONS,
 
-	input  [6:0] JOYAV,
+	inout  [6:0] JOYAV,
 	output		 BUZZER,		  // Salida para Altavoz
 	
 	output [15:0] AUDIO_L,
@@ -417,10 +417,37 @@ wire [14:0] rdata;         // right DAC data
 wire        vs;
 wire        hs;
 wire  [1:0] ar;
-wire joyav1_ena = ~JOYAV[6] & ~(&JOYAV[5:0]);
-wire joyav2_ena =  JOYAV[6] & ~(&JOYAV[5:0]);
-wire [5:0] joyav1 = JOYAV[6] ? JOYAV[5:0] : 6'hz;
-wire [5:0] joyav2 = JOYAV[6] ? 6'hz       : JOYAV[5:0] ;
+
+//Gestion Joystick DB9
+   reg spliter_ena = 1'b1; //Pendiente asignar una tecla para cambiarlo.
+   wire joyav1_ena = 1'b1; //~(&joyav1); //De momento lo forzamos para probar
+   wire joyav2_ena = ~(&joyav2);
+   wire [11:0] joyav1,joyav2;
+   reg   [5:0] joy1r, joy2r;
+	reg clk_joy, joy_split;
+
+	
+   always @ (posedge clk_sys) begin
+    clk_joy <= ~clk_joy;
+   end
+
+   assign JOYAV[6] = joy_split;
+   always @(posedge clk_joy) begin  
+      if(joy_split == 1) begin 
+	    joy_split <= 1'b0; 
+	   end else begin 
+	    joy_split <= 1'b1; 
+	   end
+   end
+   always @(posedge clk_joy) begin 
+		if (~joy_split)
+				joy1r <= JOYAV[5:0];
+		if (joy_split) 
+				joy2r <= JOYAV[5:0];	
+   end  		
+   assign joyav1 = spliter_ena ? {10'b1111111111,joy1r} : {10'b1111111111,JOYAV[5:0]}; //10'b1.. podria ser 10'h3FF
+   assign joyav2 = spliter_ena ? {10'b1111111111,joy2r} : 16'hffff;
+
 
 minimig minimig
 (
@@ -471,8 +498,8 @@ minimig minimig
 
 	.drv_snd      (BUZZER),            //PIN DEL BUZZER
 	//I/O
-	._joy1        (joyav1_ena? {10'b1111111111,joyav1} : ~JOY0 ), // joystick 1 [fire4,fire3,fire2,fire,up,down,left,right] (default mouse port)
-	._joy2        (joyav2_ena? {10'b1111111111,joyav2} : ~JOY1 ), // joystick 2 [fire4,fire3,fire2,fire,up,down,left,right] (default joystick port)
+	._joy1        (joyav1_ena ? joyav1 : ~JOY0 ), // joystick 1 [fire4,fire3,fire2,fire,up,down,left,right] (default mouse port)
+	._joy2        (joyav2_ena ? joyav2 : ~JOY1 ), // joystick 2 [fire4,fire3,fire2,fire,up,down,left,right] (default joystick port)
 	._joy3        (~JOY2            ), // joystick 1 [fire4,fire3,fire2,fire,up,down,left,right]
 	._joy4        (~JOY3            ), // joystick 2 [fire4,fire3,fire2,fire,up,down,left,right]
 	.mouse_btn    (MOUSE_BUTTONS    ), // mouse buttons

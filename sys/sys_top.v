@@ -130,23 +130,21 @@ module sys_top
 	inout   [7:0] USER_IO
 );
 
-assign USER_IO[6] = ce_pix;
-
 //////////////////////  Secondary SD  ///////////////////////////////////
 //wire SD_CS, SD_CLK, SD_MOSI;
 
-`ifdef ARCADE_SYS
-	assign SD_CS   = 1'bZ;
-	assign SD_CLK  = 1'bZ;
-	assign SD_MOSI = 1'bZ;
-`else
-	`ifndef DUAL_SDRAM
-		wire sd_miso = SW[3] | SDIO_DAT[0];
-	`else
-		wire sd_miso = 1;
-	`endif
-	wire SD_MISO = mcp_sdcd ? sd_miso : SD_SPI_MISO;
-`endif
+//`ifdef ARCADE_SYS
+//	assign SD_CS   = 1'bZ;
+//	assign SD_CLK  = 1'bZ;
+//	assign SD_MOSI = 1'bZ;
+//`else
+//	`ifndef DUAL_SDRAM
+//		wire sd_miso = SW[3] | SDIO_DAT[0];
+//	`else
+//		wire sd_miso = 1;
+//	`endif
+//	wire SD_MISO = mcp_sdcd ? sd_miso : SD_SPI_MISO;
+//`endif
 
 //`ifndef DUAL_SDRAM
 //	assign SDIO_DAT[2:1]= 2'bZZ;
