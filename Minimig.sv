@@ -420,7 +420,7 @@ wire  [1:0] ar;
 
 //Gestion Joystick DB9
    reg spliter_ena = 1'b1; //Pendiente asignar una tecla para cambiarlo.
-   wire joyav1_ena = 1'b1; //~(&joyav1); //De momento lo forzamos para probar
+   wire joyav1_ena = ~(&joyav1); 
    wire joyav2_ena = ~(&joyav2);
    wire [11:0] joyav1,joyav2;
    reg   [5:0] joy1r, joy2r;
