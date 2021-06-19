@@ -152,11 +152,62 @@ module emu
 	// 1 - D-/TX
 	// 2..6 - USR2..USR6
 	// Set USER_OUT to 1 to read from USER_IN.
-	input   [6:0] USER_IN,
-	output  [6:0] USER_OUT,
+	output        USER_OSD,
+	output  [1:0] USER_MODE,
+	input   [7:0] USER_IN,
+	output  [7:0] USER_OUT,
 
 	input         OSD_STATUS
 );
+
+wire         CLK_JOY = CLK_50M;         //Assign clock between 40-50Mhz
+wire   [2:0] JOY_FLAG = {db9md_ena,~db9md_ena,1'b0};   //Assign 3 bits of status (31:29) o (63:61)
+wire         JOY_CLK, JOY_LOAD, JOY_SPLIT, JOY_MDSEL;
+wire   [5:0] JOY_MDIN  = JOY_FLAG[2] ? {USER_IN[6],USER_IN[3],USER_IN[5],USER_IN[7],USER_IN[1],USER_IN[2]} : '1;
+wire         JOY_DATA  = JOY_FLAG[1] ? USER_IN[5] : '1;
+assign       USER_OUT  = JOY_FLAG[2] ? {3'b111,JOY_SPLIT,3'b111,JOY_MDSEL} : JOY_FLAG[1] ? {6'b111011,JOY_CLK,JOY_LOAD} : '1;
+assign       USER_MODE = JOY_FLAG[2:1] ;
+//assign       USER_OSD  = joydb_1[10] & joydb_1[6];
+
+reg  db9md_ena=1'b0;
+reg  db9_1p_ena=1'b0,db9_2p_ena=1'b0;
+wire db9_status = db9md_ena ? 1'b1 : USER_IN[7];
+always @(posedge clk_sys) 
+ begin
+	if(~db9md_ena & ~db9_status) db9md_ena <= 1'b1; 
+   if(JOYDB9MD_1[2] || JOYDB15_1[2]) db9_1p_ena <= 1'b1;
+	if(JOYDB9MD_2[2] || JOYDB15_2[2]) db9_2p_ena <= 1'b1;
+ end
+
+wire [15:0] JOY_DB1 = db9md_ena ? JOYDB9MD_1 : JOYDB15_1;
+wire [15:0] JOY_DB2 = db9md_ena ? JOYDB9MD_2 : JOYDB15_2;
+
+reg [15:0] JOYDB9MD_1,JOYDB9MD_2;
+joy_db9md joy_db9md
+(
+  .clk       ( CLK_JOY    ), //40-50MHz
+  .joy_split ( JOY_SPLIT  ),
+  .joy_mdsel ( JOY_MDSEL  ),
+  .joy_in    ( JOY_MDIN   ),
+  .joystick1 ( JOYDB9MD_1 ),
+  .joystick2 ( JOYDB9MD_2 )	  
+);
+
+reg [15:0] JOYDB15_1,JOYDB15_2;
+joy_db15 joy_db15
+(
+  .clk       ( CLK_JOY   ), //48MHz
+  .JOY_CLK   ( JOY_CLK   ),
+  .JOY_DATA  ( JOY_DATA  ),
+  .JOY_LOAD  ( JOY_LOAD  ),
+  .joystick1 ( JOYDB15_1 ),
+  .joystick2 ( JOYDB15_2 )	  
+);
+
+wire [15:0] JOY0 = db9_1p_ena ? JOY_DB1 : JOY0_USB;
+wire [15:0] JOY1 = db9_2p_ena ? JOY_DB2 : db9_1p_ena ? JOY0_USB : JOY1_USB;
+wire [15:0] JOY2 = db9_2p_ena ? JOY0_USB : db9_1p_ena ? JOY1_USB : JOY2_USB;
+wire [15:0] JOY3 = db9_2p_ena ? JOY1_USB : db9_1p_ena ? JOY2_USB : JOY3_USB;
 
 assign ADC_BUS  = 'Z;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
@@ -179,10 +230,10 @@ localparam CONF_STR2 =
 	"V,v",`BUILD_DATE
 };
 
-wire [15:0] JOY0;
-wire [15:0] JOY1;
-wire [15:0] JOY2;
-wire [15:0] JOY3;
+wire [15:0] JOY0_USB;
+wire [15:0] JOY1_USB;
+wire [15:0] JOY2_USB;
+wire [15:0] JOY3_USB;
 wire  [7:0] kbd_mouse_data;
 wire        kbd_mouse_level;
 wire  [1:0] kbd_mouse_type;
@@ -216,10 +267,10 @@ hps_io #(.STRLEN(($size(CONF_STR1) + $size(mt32_curmode) + $size(CONF_STR2))>>3)
 	.info_req(mt32_info_req),
 	.info(1),
 
-	.joystick_0(JOY0),
-	.joystick_1(JOY1),
-	.joystick_2(JOY2),
-	.joystick_3(JOY3),
+	.joystick_0(JOY0_USB),
+	.joystick_1(JOY1_USB),
+	.joystick_2(JOY2_USB),
+	.joystick_3(JOY3_USB),
 
 	.ioctl_wait(io_wait),
 
@@ -901,13 +952,13 @@ wire mt32_available;
 wire mt32_use  = mt32_available & ~mt32_disable;
 wire mt32_mute = mt32_available &  mt32_disable;
 
-mt32pi mt32pi
-(
-	.*,
-	.CE_PIXEL(ce_pix_mt32),
-	.reset(mt32_reset),
-	.midi_tx(midi_tx | mt32_mute)
-);
+//mt32pi mt32pi
+//(
+//	.*,
+//	.CE_PIXEL(ce_pix_mt32),
+//	.reset(mt32_reset),
+//	.midi_tx(midi_tx | mt32_mute)
+//);
 
 wire [87:0] mt32_curmode = {(mt32_mode == 'hA2)                  ? {"SoundFont ", {5'b00110, mt32_sf[2:0]}} :
                             (mt32_mode == 'hA1 && mt32_rom == 0) ?  "   MT-32 v1" :
