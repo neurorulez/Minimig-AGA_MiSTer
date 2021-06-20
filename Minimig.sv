@@ -176,7 +176,7 @@ always @(posedge clk_sys)
  begin
 	if(~db9md_ena & ~db9_status) db9md_ena <= 1'b1; 
    if(JOYDB9MD_1[2] || JOYDB15_1[2]) db9_1p_ena <= 1'b1;
-	if(JOYDB9MD_2[2] || JOYDB15_2[2]) db9_2p_ena <= 1'b1;
+	if(~JOYDB9MD_1[2] && JOYDB9MD_2[2] || JOYDB15_2[2]) db9_2p_ena <= 1'b1; //Se niega el del player 1 por si no hay Splitter que no se duplique
  end
 
 wire [15:0] JOY_DB1 = db9md_ena ? JOYDB9MD_1 : JOYDB15_1;
