@@ -167,7 +167,7 @@ wire   [5:0] JOY_MDIN  = JOY_FLAG[2] ? {USER_IN[6],USER_IN[3],USER_IN[5],USER_IN
 wire         JOY_DATA  = JOY_FLAG[1] ? USER_IN[5] : '1;
 assign       USER_OUT  = JOY_FLAG[2] ? {3'b111,JOY_SPLIT,3'b111,JOY_MDSEL} : JOY_FLAG[1] ? {6'b111011,JOY_CLK,JOY_LOAD} : '1;
 assign       USER_MODE = JOY_FLAG[2:1] ;
-//assign       USER_OSD  = joydb_1[10] & joydb_1[6];
+assign       USER_OSD  = JOY_DB1[10] & JOY_DB1[6];
 
 reg  db9md_ena=1'b0;
 reg  db9_1p_ena=1'b0,db9_2p_ena=1'b0;
@@ -267,6 +267,7 @@ hps_io #(.STRLEN(($size(CONF_STR1) + $size(mt32_curmode) + $size(CONF_STR2))>>3)
 	.info_req(mt32_info_req),
 	.info(1),
 
+	.joy_raw(JOY_DB1[5:0] | JOY_DB2[5:0]),
 	.joystick_0(JOY0_USB),
 	.joystick_1(JOY1_USB),
 	.joystick_2(JOY2_USB),
