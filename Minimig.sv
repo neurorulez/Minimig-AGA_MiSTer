@@ -160,12 +160,12 @@ module emu
 	input         OSD_STATUS
 );
 
-wire         CLK_JOY = CLK_50M;         //Assign clock between 40-50Mhz
+wire         CLK_JOY = CLK_50M & mt32_disable;         //Assign clock between 40-50Mhz
 wire   [2:0] JOY_FLAG = {db9md_ena,~db9md_ena,1'b0};   //Assign 3 bits of status (31:29) o (63:61)
 wire         JOY_CLK, JOY_LOAD, JOY_SPLIT, JOY_MDSEL;
 wire   [5:0] JOY_MDIN  = JOY_FLAG[2] ? {USER_IN[6],USER_IN[3],USER_IN[5],USER_IN[7],USER_IN[1],USER_IN[2]} : '1;
 wire         JOY_DATA  = JOY_FLAG[1] ? USER_IN[5] : '1;
-assign       USER_OUT  = JOY_FLAG[2] ? {3'b111,JOY_SPLIT,3'b111,JOY_MDSEL} : JOY_FLAG[1] ? {6'b111011,JOY_CLK,JOY_LOAD} : '1;
+//assign       USER_OUT  = JOY_FLAG[2] ? {3'b111,JOY_SPLIT,3'b111,JOY_MDSEL} : JOY_FLAG[1] ? {6'b111011,JOY_CLK,JOY_LOAD} : '1;
 assign       USER_MODE = JOY_FLAG[2:1] ;
 assign       USER_OSD  = JOY_DB1[10] & JOY_DB1[6];
 
@@ -203,6 +203,23 @@ joy_db15 joy_db15
   .joystick1 ( JOYDB15_1 ),
   .joystick2 ( JOYDB15_2 )	  
 );
+
+always_comb begin
+	USER_OUT    = 8'hFF; 
+	if( ~mt32_disable )begin
+		USER_OUT[6:0] = USER_OUT_MT32;
+	end else if (JOY_FLAG[1]) begin
+		USER_OUT[0] = JOY_LOAD;
+		USER_OUT[1] = JOY_CLK;
+		USER_OUT[6] = 1'b1;
+		USER_OUT[4] = 1'b1;
+	end else if (JOY_FLAG[2]) begin
+		USER_OUT[0] = JOY_MDSEL;
+		USER_OUT[1] = 1'b1;
+		USER_OUT[6] = 1'b1;
+		USER_OUT[4] = JOY_SPLIT;
+	end
+end
 
 wire [15:0] JOY0 = db9_1p_ena ? JOY_DB1 : JOY0_USB;
 wire [15:0] JOY1 = db9_2p_ena ? JOY_DB2 : db9_1p_ena ? JOY0_USB : JOY1_USB;
@@ -953,13 +970,17 @@ wire mt32_available;
 wire mt32_use  = mt32_available & ~mt32_disable;
 wire mt32_mute = mt32_available &  mt32_disable;
 
-//mt32pi mt32pi
-//(
-//	.*,
-//	.CE_PIXEL(ce_pix_mt32),
-//	.reset(mt32_reset),
-//	.midi_tx(midi_tx | mt32_mute)
-//);
+wire [6:0] USER_IN_MT32 = mt32_disable ? 1 : USER_IN[6:0];
+wire [6:0] USER_OUT_MT32;
+mt32pi mt32pi
+(
+	.*,
+	.USER_IN(USER_IN_MT32),
+	.USER_OUT(USER_OUT_MT32),
+	.CE_PIXEL(ce_pix_mt32),
+	.reset(mt32_reset),
+	.midi_tx(midi_tx | mt32_mute)
+);
 
 wire [87:0] mt32_curmode = {(mt32_mode == 'hA2)                  ? {"SoundFont ", {5'b00110, mt32_sf[2:0]}} :
                             (mt32_mode == 'hA1 && mt32_rom == 0) ?  "   MT-32 v1" :
