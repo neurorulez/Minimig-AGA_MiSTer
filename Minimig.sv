@@ -280,7 +280,7 @@ hps_io #(.STRLEN(($size(CONF_STR1) + $size(mt32_curmode) + $size(CONF_STR2))>>3)
 
 	.conf_str({CONF_STR1, mt32_curmode, CONF_STR2}),
 	.status(status),
-	.status_menumask({mt32_cfg,mt32_available}),
+	.status_menumask({mt32_cfg,1'b1}), //mt32_available (se deja a 1 para que salgan siempre las opciones mt32 y se pueda activar el disable)
 	.info_req(mt32_info_req),
 	.info(1),
 
